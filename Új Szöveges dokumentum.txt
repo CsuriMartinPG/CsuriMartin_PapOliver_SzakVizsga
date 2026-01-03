@@ -1,0 +1,199 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Drawing;
+using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+
+namespace HealthTrack
+{
+    public class DatabaseHelper
+    {
+        private string connStr = "Server=localhost;Database=healthtrack3;Uid=root;Pwd=mysql;";
+
+        public DataTable GetAllData()
+        {
+            DataTable dt = new DataTable();
+            string sql = @"SELECT sz.diakID, sz.nev, m.eletkor, m.suly, m.magassag, 
+                          m.osztaly, m.nem, ROUND(m.suly / POW(m.magassag/100, 2), 2) AS BMI
+                          FROM meresek m 
+                          JOIN szemelyek sz ON m.diakID = sz.diakID
+                          ORDER BY sz.nev";
+
+            using (MySqlConnection conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
+                MySqlDataAdapter da = new MySqlDataAdapter(sql, conn);
+                da.Fill(dt);
+            }
+            return dt;
+        }
+
+        public DataTable SearchByName(string nev)
+        {
+            DataTable dt = new DataTable();
+            string sql = @"SELECT sz.diakID, sz.nev, m.eletkor, m.suly, m.magassag, 
+                          m.osztaly, m.nem, ROUND(m.suly / POW(m.magassag/100, 2), 2) AS BMI
+                          FROM meresek m 
+                          JOIN szemelyek sz ON m.diakID = sz.diakID
+                          WHERE sz.nev LIKE @nev
+                          ORDER BY sz.nev";
+
+            using (MySqlConnection conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@nev", "%" + nev + "%");
+                MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+                da.Fill(dt);
+            }
+            return dt;
+        }
+
+        public DataTable FilterByOsztaly(string osztaly)
+        {
+            DataTable dt = new DataTable();
+            string sql = @"SELECT sz.diakID, sz.nev, m.eletkor, m.suly, m.magassag, 
+                          m.osztaly, m.nem, ROUND(m.suly / POW(m.magassag/100, 2), 2) AS BMI
+                          FROM meresek m 
+                          JOIN szemelyek sz ON m.diakID = sz.diakID
+                          WHERE m.osztaly = @osztaly
+                          ORDER BY sz.nev";
+
+            using (MySqlConnection conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@osztaly", osztaly);
+                MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+                da.Fill(dt);
+            }
+            return dt;
+        }
+
+        public List<string> GetOsztalyok()
+        {
+            List<string> lista = new List<string>();
+            using (MySqlConnection conn = new MySqlConnection(connStr))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("SELECT DISTINCT osztaly FROM meresek ORDER BY osztaly", conn);
+                MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    lista.Add(reader["osztaly"].ToString());
+                }
+            }
+            return lista;
+        }
+    }
+    public partial class MainForm : Form
+    {
+        private DatabaseHelper db;
+        private TextBox txtNev;
+        private ComboBox cmbOsztaly;
+        private DataGridView grid;
+        private Button btnKereses, btnSzures, btnMinden;
+
+        public MainForm()
+        {
+            InitializeComponent();
+            db = new DatabaseHelper();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = "Health Track - Iskolai Mérések";
+            this.Size = new Size(1100, 600);
+            this.StartPosition = FormStartPosition.CenterScreen;
+
+            // Felső panel
+            Panel topPanel = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.LightGray };
+
+            Label lblNev = new Label { Text = "Név:", Location = new Point(20, 25), AutoSize = true };
+            txtNev = new TextBox { Location = new Point(60, 22), Width = 200 };
+            btnKereses = new Button { Text = "Keresés", Location = new Point(270, 20), Width = 80 };
+            btnKereses.Click += (s, e) => Kereses();
+
+            Label lblOsztaly = new Label { Text = "Osztály:", Location = new Point(380, 25), AutoSize = true };
+            cmbOsztaly = new ComboBox { Location = new Point(450, 22), Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
+            btnSzures = new Button { Text = "Szűrés", Location = new Point(580, 20), Width = 80 };
+            btnSzures.Click += (s, e) => Szures();
+
+            btnMinden = new Button { Text = "Összes", Location = new Point(680, 20), Width = 80 };
+            btnMinden.Click += (s, e) => LoadData(db.GetAllData());
+
+            topPanel.Controls.AddRange(new Control[] { lblNev, txtNev, btnKereses, lblOsztaly, cmbOsztaly, btnSzures, btnMinden });
+
+            // DataGridView
+            grid = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+            };
+
+            this.Controls.Add(grid);
+            this.Controls.Add(topPanel);
+
+            LoadOsztalyok();
+            LoadData(db.GetAllData());
+        }
+
+        private void LoadOsztalyok()
+        {
+            cmbOsztaly.Items.Add("-- Válasszon --");
+            foreach (string o in db.GetOsztalyok())
+                cmbOsztaly.Items.Add(o);
+            cmbOsztaly.SelectedIndex = 0;
+        }
+
+        private void LoadData(DataTable dt)
+        {
+            grid.DataSource = dt;
+            if (grid.Columns.Count > 0)
+            {
+                grid.Columns["diakID"].HeaderText = "Diák ID";
+                grid.Columns["nev"].HeaderText = "Név";
+                grid.Columns["eletkor"].HeaderText = "Életkor";
+                grid.Columns["suly"].HeaderText = "Súly (kg)";
+                grid.Columns["magassag"].HeaderText = "Magasság (cm)";
+                grid.Columns["osztaly"].HeaderText = "Osztály";
+                grid.Columns["nem"].HeaderText = "Nem";
+                grid.Columns["BMI"].HeaderText = "BMI";
+            }
+        }
+
+        private void Kereses()
+        {
+            if (string.IsNullOrEmpty(txtNev.Text))
+            {
+                MessageBox.Show("Adjon meg egy nevet!");
+                return;
+            }
+            LoadData(db.SearchByName(txtNev.Text));
+        }
+
+        private void Szures()
+        {
+            if (cmbOsztaly.SelectedIndex <= 0)
+            {
+                MessageBox.Show("Válasszon osztályt!");
+                return;
+            }
+            LoadData(db.FilterByOsztaly(cmbOsztaly.Text));
+        }
+    }
+    static class Program
+    {
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
+        }
+    }
+}
