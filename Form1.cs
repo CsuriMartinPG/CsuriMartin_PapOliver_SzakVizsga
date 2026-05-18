@@ -24,12 +24,28 @@ namespace HealthTrack_CsuriMartin_PapOliver
 
         string kivalasztottOsztaly;
         string kivalasztottNev;
+        string neme;
         double sulySz = 0.0;
         double magassagSz = 0.0;
         double bmi = 0.0;
+        double testzsirSzazalek = 0.0;
+        int eletkora = 0;
         List<string> osztalyok = new List<string>();
         List<string> diakok = new List<string>();
         List<kategoriaBMI> fileadat = new List<kategoriaBMI>();
+
+        static public double testZsirSzazalekSzamitas(string neme, int eletkor, double bmi)
+        {
+            
+            if(neme == "férfi")
+            {
+                return Math.Round((1.20 * bmi) + (0.23 * eletkor) - 16.2, 2);
+            }
+            else
+            {
+                return Math.Round((1.20 * bmi) + (0.23 * eletkor) - 5.4, 2);
+            }
+        }
 
         public void Form1_Load(object sender, EventArgs e)
         {
@@ -41,7 +57,6 @@ namespace HealthTrack_CsuriMartin_PapOliver
             lekerdezes.CommandText = "SELECT nev FROM meresek";
 
             var olvaso = lekerdezes.ExecuteReader();
-            MessageBox.Show("ADATBÁZIS BETÖLTVE");
             olvaso.Close();
             
 
@@ -84,6 +99,16 @@ namespace HealthTrack_CsuriMartin_PapOliver
 
         private void foLekerdezes_Click(object sender, EventArgs e)
         {
+            var serverKapcsolat = new MySqlConnectionStringBuilder { Server = "127.0.0.1", Database = "healthtrack", UserID = "root", Password = "mysql" };
+            MySqlConnection kapcsolat;
+            kapcsolat = new MySqlConnection(serverKapcsolat.ConnectionString);
+            kapcsolat.Open();
+            var lekerdezes = kapcsolat.CreateCommand();
+            lekerdezes.CommandText = "SELECT nev FROM meresek";
+
+            var olvaso = lekerdezes.ExecuteReader();
+            olvaso.Close();
+
             foLekerdezes.Visible = false;
             foHozzaadas.Visible = false;
             foTorles.Visible = false;
@@ -100,7 +125,18 @@ namespace HealthTrack_CsuriMartin_PapOliver
             magassagTxb.Visible = false;
             hozzaadas.Visible = false;
             torles.Visible = false;
-
+            testZsirLabel.Visible = true;
+            testzsir.Visible = true;
+            bmiErtekLabel.Visible = true;
+            bmiErtek.Visible = true;
+            bmiKatLabel.Visible = true;
+            bmiKat.Visible = true;
+            tzsirAlso.Visible = true;
+            tzsirFelso.Visible = true;
+            tzsirKozep.Visible = true;
+            pictureBox2.Visible = true;
+            tzsirKat.Visible = true;
+            tzsirKatLabel.Visible = true;
         }
 
         private void osztalyLista_SelectedIndexChanged(object sender, EventArgs e)
@@ -146,6 +182,7 @@ namespace HealthTrack_CsuriMartin_PapOliver
         private void diakLista_SelectedIndexChanged(object sender, EventArgs e)
         {
             kivalasztottNev = diakLista.Text;
+            
 
             var serverKapcsolat = new MySqlConnectionStringBuilder { Server = "127.0.0.1", Database = "healthtrack", UserID = "root", Password = "mysql" };
             MySqlConnection kapcsolat;
@@ -169,10 +206,28 @@ namespace HealthTrack_CsuriMartin_PapOliver
                 magassagSz = olvaso.GetDouble(4)/100;
                 osztaly.Text = kivalasztottOsztaly;
                 nev.Text = kivalasztottNev;
+                eletkora = int.Parse(eletkor.Text);
                 nem.Text = olvaso.GetString(7);
                 bmi = Math.Round(sulySz / (magassagSz * magassagSz), 1);
                 bmiErtek.Text = bmi.ToString();
+                
+                testzsirSzazalek = testZsirSzazalekSzamitas(nem.Text, eletkora, bmi);
+                testzsir.Text = $"{testzsirSzazalek}";
 
+                if (testzsirSzazalek)
+
+                if (nem.Text == "férfi")
+                {
+                    tzsirAlso.Text = "2%";
+                    tzsirKozep.Text = "15%";
+                    tzsirFelso.Text = "40%";
+                }
+                else
+                {
+                    tzsirAlso.Text = "10%";
+                    tzsirKozep.Text = "20%";
+                    tzsirFelso.Text = "45%";
+                }
 
                 if (bmi < double.Parse(fileadat[0].ertek.Replace('.', ',')))
                 {
@@ -198,13 +253,24 @@ namespace HealthTrack_CsuriMartin_PapOliver
                         continue;
                     }
                 }
-
             }
             olvaso.Close();
+            
         }
+
 
         private void vissza_Click(object sender, EventArgs e)
         {
+            var serverKapcsolat = new MySqlConnectionStringBuilder { Server = "127.0.0.1", Database = "healthtrack", UserID = "root", Password = "mysql" };
+            MySqlConnection kapcsolat;
+            kapcsolat = new MySqlConnection(serverKapcsolat.ConnectionString);
+            kapcsolat.Open();
+            var lekerdezes = kapcsolat.CreateCommand();
+            lekerdezes.CommandText = "SELECT nev FROM meresek";
+
+            var olvaso = lekerdezes.ExecuteReader();
+            olvaso.Close();
+
             vissza.Visible = false;
             foLekerdezes.Visible = true;
             foHozzaadas.Visible = true;
@@ -213,10 +279,36 @@ namespace HealthTrack_CsuriMartin_PapOliver
             diakLista.Visible = false;
             elvalaszto1.Visible = false;
             lekerdezesPanel.Visible = false;
+            osztalyLista2.Visible = false;
+            diakLista2.Visible = false;
+            nev.Text = "-----";
+            osztaly.Text = "-----";
+            oktAz.Text = "-----";
+            eletkor.Text = "-----";
+            nem.Text = "-----";
+            suly.Text = "-----";
+            magassag.Text = "-----";
+            bmiErtek.Text = "-----";
+            bmiKat.Text = "-----";
+            testzsir.Text = "-----";
+            tzsirAlso.Text = "---";
+            tzsirKozep.Text = "---";
+            tzsirFelso.Text = "---";
+
         }
 
         private void foHozzaadas_Click_1(object sender, EventArgs e)
         {
+            var serverKapcsolat = new MySqlConnectionStringBuilder { Server = "127.0.0.1", Database = "healthtrack", UserID = "root", Password = "mysql" };
+            MySqlConnection kapcsolat;
+            kapcsolat = new MySqlConnection(serverKapcsolat.ConnectionString);
+            kapcsolat.Open();
+            var lekerdezes = kapcsolat.CreateCommand();
+            lekerdezes.CommandText = "SELECT nev FROM meresek";
+
+            var olvaso = lekerdezes.ExecuteReader();
+            olvaso.Close();
+
             foLekerdezes.Visible = false;
             foHozzaadas.Visible = false;
             foTorles.Visible = false;
@@ -235,6 +327,15 @@ namespace HealthTrack_CsuriMartin_PapOliver
             sulyTxb.Visible = true;
             magassagTxb.Visible = true;
             hozzaadas.Visible= true;
+            torles.Visible = false;
+            testZsirLabel.Visible = false;
+            testzsir.Visible = false;
+            tzsirAlso.Visible = false;
+            tzsirFelso.Visible = false;
+            tzsirKozep.Visible = false;
+            pictureBox2.Visible = false;
+            tzsirKat.Visible = false;
+            tzsirKatLabel.Visible = false;
             
         }
 
@@ -247,7 +348,6 @@ namespace HealthTrack_CsuriMartin_PapOliver
                 kapcsolat = new MySqlConnection(serverKapcsolat.ConnectionString);
                 kapcsolat.Open();
                 var lekerdezes = kapcsolat.CreateCommand();
-                // Paraméterezett lekérdezés használata
                 lekerdezes.CommandText = @"
                 INSERT INTO szemelyek (oktatasi_azonosito, nev)
                 VALUES (@oktAz, @nev);
@@ -255,7 +355,6 @@ namespace HealthTrack_CsuriMartin_PapOliver
                 INSERT INTO meresek (oktatasi_azonosito, eletkor, suly, magassag, osztaly, nev, nem)
                 VALUES (@oktAz, @eletkor, @suly, @magassag, @osztaly, @nev, @nem)";
 
-                // Paraméterek hozzáadása
                 lekerdezes.Parameters.AddWithValue("@oktAz", oktAzTxb.Text);
                 lekerdezes.Parameters.AddWithValue("@nev", nevTxb.Text);
                 lekerdezes.Parameters.AddWithValue("@eletkor", int.Parse(eletkorTxb.Text));
@@ -263,6 +362,15 @@ namespace HealthTrack_CsuriMartin_PapOliver
                 lekerdezes.Parameters.AddWithValue("@magassag", decimal.Parse(magassagTxb.Text));
                 lekerdezes.Parameters.AddWithValue("@osztaly", osztalyTxb.Text);
                 lekerdezes.Parameters.AddWithValue("@nem", nemTxb.Text);
+                lekerdezes.ExecuteNonQuery();
+
+                StreamWriter sw = new StreamWriter("healthtrack.sql", true);
+
+                sw.WriteLine("INSERT INTO szemelyek(oktatasi_azonosito, nev) VALUES(@oktAz, @nev);");
+                sw.WriteLine("INSERT INTO meresek (oktatasi_azonosito, eletkor, suly, magassag, osztaly, nev, nem)\r\n                VALUES (@oktAz, @eletkor, @suly, @magassag, @osztaly, @nev, @nem)");
+
+                sw.Close();
+
                 MessageBox.Show("Sikeres hozzáadás");
                 nevTxb.Text = "";
                 osztalyTxb.Text = "";
@@ -281,6 +389,16 @@ namespace HealthTrack_CsuriMartin_PapOliver
 
         private void foTorles_Click(object sender, EventArgs e)
         {
+            var serverKapcsolat = new MySqlConnectionStringBuilder { Server = "127.0.0.1", Database = "healthtrack", UserID = "root", Password = "mysql" };
+            MySqlConnection kapcsolat;
+            kapcsolat = new MySqlConnection(serverKapcsolat.ConnectionString);
+            kapcsolat.Open();
+            var lekerdezes = kapcsolat.CreateCommand();
+            lekerdezes.CommandText = "SELECT nev FROM meresek";
+
+            var olvaso = lekerdezes.ExecuteReader();
+            olvaso.Close();
+
             foLekerdezes.Visible = false;
             foHozzaadas.Visible = false;
             foTorles.Visible = false;
@@ -296,8 +414,15 @@ namespace HealthTrack_CsuriMartin_PapOliver
             sulyTxb.Visible = false;
             magassagTxb.Visible = false;
             hozzaadas.Visible = false;
-
             torles.Visible = true;
+
+            tzsirAlso.Visible = true;
+            tzsirFelso.Visible = true;
+            tzsirKozep.Visible = true;
+            pictureBox2.Visible = true;
+            tzsirKat.Visible = true;
+            tzsirKatLabel.Visible = true;
+
         }
 
         private void osztalyLista2_SelectedIndexChanged(object sender, EventArgs e)
@@ -339,7 +464,6 @@ namespace HealthTrack_CsuriMartin_PapOliver
                 diakLista2.Items.Add(item);
             }
         }
-
         private void diakLista2_SelectedIndexChanged(object sender, EventArgs e)
         {
             kivalasztottNev = diakLista2.Text;
@@ -369,6 +493,19 @@ namespace HealthTrack_CsuriMartin_PapOliver
                 nem.Text = olvaso.GetString(7);
                 bmi = Math.Round(sulySz / (magassagSz * magassagSz), 1);
                 bmiErtek.Text = bmi.ToString();
+
+                if (nem.Text == "férfi")
+                {
+                    tzsirAlso.Text = "2%";
+                    tzsirKozep.Text = "15%";
+                    tzsirFelso.Text = "40%";
+                }
+                else
+                {
+                    tzsirAlso.Text = "10%";
+                    tzsirKozep.Text = "20%";
+                    tzsirFelso.Text = "45%";
+                }
 
                 if (bmi < double.Parse(fileadat[0].ertek.Replace('.', ',')))
                 {
@@ -409,6 +546,9 @@ namespace HealthTrack_CsuriMartin_PapOliver
             magassag.Text = "-----";
             bmiErtek.Text = "-----";
             bmiKat.Text = "-----";
+            tzsirAlso.Text = "---";
+            tzsirKozep.Text = "---";
+            tzsirFelso.Text = "---";
 
             var serverKapcsolat = new MySqlConnectionStringBuilder { Server = "127.0.0.1", Database = "healthtrack", UserID = "root", Password = "mysql" };
             MySqlConnection kapcsolat;
@@ -422,6 +562,16 @@ namespace HealthTrack_CsuriMartin_PapOliver
             torlesMeresek.Parameters.AddWithValue("@nev", kivalasztottNev);
             torlesMeresek.Parameters.AddWithValue("@osztaly", kivalasztottOsztaly);
             torlesMeresek.ExecuteNonQuery();
+
+            StreamWriter sw = new StreamWriter("healthtrack.sql", true);
+
+            sw.WriteLine("DELETE FROM meresek WHERE nev = @nev AND osztaly = @osztaly",
+                    kapcsolat);
+
+            sw.Close();
+
+            
+
             diakLista2.Items.Remove(kivalasztottNev);
         }
     }
@@ -429,7 +579,6 @@ namespace HealthTrack_CsuriMartin_PapOliver
     {
         public string ertek;
         public string kategoria;
-
         public kategoriaBMI (string line)
         {
             string[] szet = line.Split('-');
